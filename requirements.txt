@@ -1,0 +1,4 @@
+passlib>=1.7.4
+streamlit>=1.38
+matplotlib>=3.9
+pytest>=8.0
