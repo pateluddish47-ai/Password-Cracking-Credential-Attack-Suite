@@ -1,5 +1,8 @@
 # Password Cracking & Credential Attack Suite
 
+**Live dashboard:** https://password-cracking-credential-attack-suite-58xby2nrznzkhogifexp.streamlit.app/
+**Author:** Uddish Patel
+
 An ethical, **simulation-only** toolkit for password policy testing and
 credential security auditing, with a Streamlit dashboard, real crypt-hash
 verification, live hardware benchmarking, and NIST SP 800-63B compliance

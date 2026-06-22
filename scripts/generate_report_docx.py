@@ -9,6 +9,9 @@ from docx.shared import Inches, Pt, RGBColor
 ROOT = Path(__file__).resolve().parent.parent
 REPORTS = ROOT / "reports"
 CHARTS = REPORTS / "charts"
+SCREENSHOTS = REPORTS / "screenshots"
+LIVE_APP_URL = "https://password-cracking-credential-attack-suite-58xby2nrznzkhogifexp.streamlit.app/"
+REPO_URL = "https://github.com/pateluddish47-ai/Password-Cracking-Credential-Attack-Suite"
 
 NAVY = RGBColor(0x1E, 0x3A, 0x5F)
 GRAY = RGBColor(0x44, 0x44, 0x44)
@@ -49,6 +52,18 @@ date_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 run = date_p.add_run(date.today().strftime("%B %Y"))
 run.font.size = Pt(12)
 run.font.color.rgb = GRAY
+
+doc.add_paragraph()
+link_p = doc.add_paragraph()
+link_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+run = link_p.add_run(f"Live application: {LIVE_APP_URL}")
+run.font.size = Pt(11)
+run.font.color.rgb = NAVY
+link_p2 = doc.add_paragraph()
+link_p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+run = link_p2.add_run(f"Source code: {REPO_URL}")
+run.font.size = Pt(11)
+run.font.color.rgb = NAVY
 
 doc.add_page_break()
 
@@ -160,8 +175,39 @@ if flowchart_path.exists():
 
 doc.add_page_break()
 
-# ---------- 7. Differentiators ----------
-heading("7. Key Differentiators", 1)
+# ---------- 7. Live application & screenshots ----------
+heading("7. Live Application & Screenshots", 1)
+body(
+    f"The dashboard is deployed and publicly accessible at: {LIVE_APP_URL}\n"
+    f"Source code repository: {REPO_URL}\n\n"
+    "The screenshots below were captured directly from the live deployment "
+    "(not a local mockup), with each tab's primary action executed so the "
+    "actual output is visible."
+)
+
+screenshot_figures = [
+    ("00_home.png", "Figure A: Dashboard home screen with all seven functional tabs"),
+    ("01_Dictionary_Generator.png", "Figure B: Dictionary Generator -- 1,158 candidate passwords generated from name/DOB seeds"),
+    ("02_Hash_Extractor.png", "Figure C: Hash Extractor -- parsed Linux shadow file with algorithm identification"),
+    ("03_Attack_Simulator.png", "Figure D: Attack Simulator -- dictionary attack, real crypt-hash attack, and brute-force time-to-crack estimate"),
+    ("04_Strength_Analyzer.png", "Figure E: Strength Analyzer -- entropy table with entropy histogram, severity pie chart, and risk ranking"),
+    ("05_NIST_Compliance.png", "Figure F: NIST SP 800-63B Compliance Check -- 6/10 compliant with itemized violations"),
+    ("06_Live_Benchmark.png", "Figure G: Live Benchmark -- real measured MD5 throughput on the host machine"),
+    ("07_Audit_Report.png", "Figure H: Consolidated Audit Report generated and rendered in-app"),
+]
+for img_name, caption in screenshot_figures:
+    img_path = SCREENSHOTS / img_name
+    if img_path.exists():
+        doc.add_picture(str(img_path), width=Inches(5.6))
+        cap = doc.add_paragraph(caption)
+        cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        cap.runs[0].italic = True
+        doc.add_paragraph()
+
+doc.add_page_break()
+
+# ---------- 8. Differentiators ----------
+heading("8. Key Differentiators", 1)
 body(
     "Beyond the four baseline modules, this implementation adds the following to demonstrate "
     "depth of understanding rather than a surface-level reproduction of the brief:"
@@ -174,7 +220,7 @@ bullet("Visual analytics (entropy histogram, severity pie chart, per-account ris
 bullet("A 38-test automated pytest suite covering every module, independently verifiable by re-running `pytest tests/`.")
 
 # ---------- 8. Results ----------
-heading("8. Results & Demonstration", 1)
+heading("9. Results & Demonstration", 1)
 body(
     "The toolkit was exercised end-to-end against the bundled sample data "
     "(sample_data/sample_shadow.txt, sample_sam_dump.txt, sample_passwords.txt, "
@@ -223,7 +269,7 @@ for img_name, caption in [
 doc.add_page_break()
 
 # ---------- 9. Real attack demonstration ----------
-heading("9. Real Attack Demonstration", 1)
+heading("10. Real Attack Demonstration", 1)
 body(
     "Unlike a purely theoretical exercise, this toolkit was verified against real, "
     "freshly generated crypt hashes. A SHA-512-crypt hash for user 'alice' (sample_shadow.txt) "
@@ -234,7 +280,7 @@ body(
 )
 
 # ---------- 10. NIST methodology ----------
-heading("10. NIST SP 800-63B Compliance Methodology", 1)
+heading("11. NIST SP 800-63B Compliance Methodology", 1)
 body("The compliance checker implements the following requirements from the NIST Digital Identity Guidelines:")
 bullet("Minimum length of 8 characters (NIST sets 8 as the floor and recommends allowing up to 64).")
 bullet("No mandatory composition rules (NIST deliberately does not require mixed-case/digit/symbol composition).")
@@ -243,14 +289,14 @@ bullet("Repetitive character sequences (e.g. 'aaaa') and sequential sequences (e
 bullet("Context-specific words (e.g. username or service name reused in the password) are flagged.")
 
 # ---------- 11. Ethical considerations ----------
-heading("11. Security & Ethical Considerations", 1)
+heading("12. Security & Ethical Considerations", 1)
 bullet("All hash extraction operates on files supplied by the user; no live filesystem or registry access is performed.")
 bullet("Brute-force 'cracking' is bounded to small demo keyspaces or backed by a mathematical estimate -- not unrestricted live cracking.")
 bullet("The breach corpus is a small, locally curated list of well-known common/breached passwords; no live network lookups are made.")
 bullet("Intended for use only against accounts and data the user owns or is explicitly authorized to test.")
 
 # ---------- 12. Learning outcomes ----------
-heading("12. Learning Outcomes", 1)
+heading("13. Learning Outcomes", 1)
 bullet("Practical understanding of how passwords are stored, hashed, and protected on Linux and Windows.")
 bullet("Hands-on experience with ethical password-cracking methodologies and their real time/compute cost.")
 bullet("Applied a real, published authentication security standard (NIST SP 800-63B) rather than ad-hoc heuristics.")
@@ -258,7 +304,7 @@ bullet("Red-team vs blue-team perspective: building both the attack simulation a
 bullet("End-to-end software engineering: modular design, a CLI, an interactive dashboard, and automated testing.")
 
 # ---------- 13. Conclusion ----------
-heading("13. Conclusion & Future Scope", 1)
+heading("14. Conclusion & Future Scope", 1)
 body(
     "This project delivers a complete, working, and ethically scoped password-auditing toolkit "
     "that goes beyond a basic script collection: it includes a real interactive dashboard, "
@@ -269,7 +315,7 @@ body(
 )
 
 # ---------- 14. References ----------
-heading("14. References", 1)
+heading("15. References", 1)
 bullet("NIST Special Publication 800-63B -- Digital Identity Guidelines: Authentication and Lifecycle Management.")
 bullet("passlib documentation -- https://passlib.readthedocs.io")
 bullet("Streamlit documentation -- https://docs.streamlit.io")
