@@ -4,6 +4,8 @@ from pathlib import Path
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -66,6 +68,57 @@ run.font.size = Pt(11)
 run.font.color.rgb = NAVY
 
 doc.add_page_break()
+
+# ---------- table of contents ----------
+toc_heading = doc.add_paragraph()
+run = toc_heading.add_run("Table of Contents")
+run.bold = True
+run.font.size = Pt(18)
+run.font.color.rgb = NAVY
+
+paragraph = doc.add_paragraph()
+run = paragraph.add_run()
+fld_begin = OxmlElement("w:fldChar")
+fld_begin.set(qn("w:fldCharType"), "begin")
+instr_text = OxmlElement("w:instrText")
+instr_text.set(qn("xml:space"), "preserve")
+instr_text.text = 'TOC \\o "1-2" \\h \\z \\u'
+fld_separate = OxmlElement("w:fldChar")
+fld_separate.set(qn("w:fldCharType"), "separate")
+fld_text = OxmlElement("w:t")
+fld_text.text = "Right-click here and choose 'Update Field' to generate the table of contents."
+fld_end = OxmlElement("w:fldChar")
+fld_end.set(qn("w:fldCharType"), "end")
+r_element = run._r
+r_element.append(fld_begin)
+r_element.append(instr_text)
+r_element.append(fld_separate)
+r_element.append(fld_text)
+r_element.append(fld_end)
+
+doc.add_page_break()
+
+
+def add_page_number_footer(document):
+    section = document.sections[0]
+    footer = section.footer
+    p = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run()
+    fld_begin = OxmlElement("w:fldChar")
+    fld_begin.set(qn("w:fldCharType"), "begin")
+    instr_text = OxmlElement("w:instrText")
+    instr_text.set(qn("xml:space"), "preserve")
+    instr_text.text = "PAGE"
+    fld_end = OxmlElement("w:fldChar")
+    fld_end.set(qn("w:fldCharType"), "end")
+    r_element = run._r
+    r_element.append(fld_begin)
+    r_element.append(instr_text)
+    r_element.append(fld_end)
+
+
+add_page_number_footer(doc)
 
 
 def heading(text, level=1):
@@ -180,29 +233,109 @@ heading("7. Live Application & Screenshots", 1)
 body(
     f"The dashboard is deployed and publicly accessible at: {LIVE_APP_URL}\n"
     f"Source code repository: {REPO_URL}\n\n"
-    "The screenshots below were captured directly from the live deployment "
-    "(not a local mockup), with each tab's primary action executed so the "
-    "actual output is visible."
+    "Every screenshot in this section was captured directly from the live "
+    "deployment using an automated browser session (not a local mockup or "
+    "edited image): the relevant action button on each tab was actually "
+    "clicked, and the screenshot shows the real output that action produced. "
+    "Dense tabs are split into multiple close-up figures so every value, "
+    "label, and axis is legible at print resolution."
 )
 
-screenshot_figures = [
-    ("00_home.png", "Figure A: Dashboard home screen with all seven functional tabs"),
-    ("01_Dictionary_Generator.png", "Figure B: Dictionary Generator -- 1,158 candidate passwords generated from name/DOB seeds"),
-    ("02_Hash_Extractor.png", "Figure C: Hash Extractor -- parsed Linux shadow file with algorithm identification"),
-    ("03_Attack_Simulator.png", "Figure D: Attack Simulator -- dictionary attack, real crypt-hash attack, and brute-force time-to-crack estimate"),
-    ("04_Strength_Analyzer.png", "Figure E: Strength Analyzer -- entropy table with entropy histogram, severity pie chart, and risk ranking"),
-    ("05_NIST_Compliance.png", "Figure F: NIST SP 800-63B Compliance Check -- 6/10 compliant with itemized violations"),
-    ("06_Live_Benchmark.png", "Figure G: Live Benchmark -- real measured MD5 throughput on the host machine"),
-    ("07_Audit_Report.png", "Figure H: Consolidated Audit Report generated and rendered in-app"),
-]
-for img_name, caption in screenshot_figures:
-    img_path = SCREENSHOTS / img_name
-    if img_path.exists():
-        doc.add_picture(str(img_path), width=Inches(5.6))
-        cap = doc.add_paragraph(caption)
-        cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        cap.runs[0].italic = True
-        doc.add_paragraph()
+
+def screenshot_section(subheading, description, figures):
+    heading(subheading, 2)
+    body(description)
+    for img_name, caption, width in figures:
+        img_path = SCREENSHOTS / img_name
+        if img_path.exists():
+            pic_p = doc.add_paragraph()
+            pic_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            pic_p.add_run().add_picture(str(img_path), width=Inches(width))
+            cap = doc.add_paragraph(caption)
+            cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            cap.runs[0].italic = True
+            cap.runs[0].font.size = Pt(9.5)
+            doc.add_paragraph()
+
+
+screenshot_section(
+    "7.1 Dashboard Home",
+    "The landing view shows the application title, the ethical-use disclaimer, "
+    "and the seven functional tabs that make up the toolkit.",
+    [("00_home.png", "Figure A: Dashboard home screen with all seven functional tabs", 6.3)],
+)
+
+screenshot_section(
+    "7.2 Dictionary Generator",
+    "Seed names 'Alice' and 'Bob' with DOB fragments '1995'/'9505' were submitted. "
+    "The generator combined them with common passwords, keyboard patterns, and "
+    "leet-speak/case/suffix mutations to produce 1,158 unique candidate passwords, "
+    "previewed in-app and available as a one-click .txt download.",
+    [("01_Dictionary_Generator.png", "Figure B: 1,158 candidate passwords generated from name/DOB seeds", 6.3)],
+)
+
+screenshot_section(
+    "7.3 Hash Extractor",
+    "The bundled sample_shadow.txt file was loaded and parsed. The extractor correctly "
+    "identified each account's hashing scheme from its crypt-format prefix: SHA-512 "
+    "for 'root' and 'alice', MD5 for 'bob', and flagged 'carol'/'dave' as locked/disabled "
+    "accounts ('*' and '!!') rather than misreading them as crackable hashes.",
+    [("02_Hash_Extractor.png", "Figure C: Parsed Linux shadow file with per-account algorithm identification", 6.3)],
+)
+
+screenshot_section(
+    "7.4 Attack Simulator",
+    "Three real attacks were run in sequence: (1) a dictionary attack against a raw hash "
+    "digest, (2) a genuine passlib-based crypt attack against the 'root' account's real "
+    "SHA-512 shadow hash, and (3) a brute-force time-to-crack estimate for an 8-character "
+    "lower+upper+digit+symbol password. With 'Use live benchmark guess-rate' enabled, the "
+    "app measured this machine's real SHA-256 throughput (1,126,673 hashes/sec) and used it "
+    "to compute the estimate -- 31 years, 118 days to exhaust the full keyspace -- instead "
+    "of relying on an assumed constant.",
+    [("03_Attack_Simulator.png", "Figure D: Dictionary attack, real crypt-hash attack, and a live-benchmark-calibrated brute-force estimate", 6.3)],
+)
+
+screenshot_section(
+    "7.5 Strength Analyzer",
+    "Ten sample passwords were analyzed for length, Shannon-style entropy, severity, and "
+    "common/keyboard-pattern flags. The results are shown as a data table, an entropy "
+    "histogram, a severity pie chart, and a per-account risk-ranking bar chart -- each "
+    "rendered as a separate close-up figure below for readability.",
+    [
+        ("04a_Strength_Table.png", "Figure E1: Full strength-analysis data table (length, entropy, severity, flags) for all 10 sample passwords", 6.3),
+        ("04b_Strength_Charts.png", "Figure E2: Entropy distribution histogram (left) and severity distribution pie chart (right)", 6.3),
+        ("04c_Risk_Ranking.png", "Figure E3: Per-account risk ranking, sorted from highest risk ('123456') to lowest risk ('correcthorsebatterystaple')", 6.0),
+    ],
+)
+
+screenshot_section(
+    "7.6 NIST SP 800-63B Compliance",
+    "The same 10 passwords were checked against the NIST SP 800-63B rules implemented in "
+    "modules/compliance_checker.py. Six of ten passed; the four failures are itemized with "
+    "their exact violation reason -- e.g. '123456' fails on both minimum length and breach-"
+    "corpus membership, while 'admin' fails on length and breach-corpus membership.",
+    [("05_NIST_Compliance.png", "Figure F: NIST SP 800-63B compliance result -- 6/10 compliant, with itemized violations per password", 6.3)],
+)
+
+screenshot_section(
+    "7.7 Live Benchmark",
+    "Selecting MD5 and running the benchmark measured this machine's real digest throughput "
+    "live -- 1,109,323.96 hashes/sec over a 1-second sampling window -- the same figure used "
+    "to calibrate the brute-force estimate in Section 7.4.",
+    [("06_Live_Benchmark.png", "Figure G: Live-measured MD5 hashing throughput on the host machine", 6.3)],
+)
+
+screenshot_section(
+    "7.8 Consolidated Audit Report",
+    "Finally, the Audit Report tab consolidates every prior result -- strength analysis, "
+    "attack results, brute-force estimate, and NIST compliance -- into a single in-app "
+    "markdown report, downloadable as a .md file. The report is split into two figures below: "
+    "the executive summary and strength table, followed by the attack/compliance sections.",
+    [
+        ("07a_Report_Summary_Table.png", "Figure H1: Audit report header, executive summary, and full strength-analysis table", 6.3),
+        ("07b_Report_Attacks_Compliance.png", "Figure H2: Brute-force estimate and NIST SP 800-63B compliance table within the consolidated report", 6.3),
+    ],
+)
 
 doc.add_page_break()
 
