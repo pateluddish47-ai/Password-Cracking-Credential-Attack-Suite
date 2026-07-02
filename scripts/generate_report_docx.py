@@ -115,31 +115,104 @@ def add_header(document, title_text: str):
     add_hr(p, "DDDDDD", 2)
 
 
-def add_toc(doc):
-    p   = doc.add_paragraph()
-    run = p.add_run()
-    for tag, instr, fld_text in [
-        ("begin", None, None),
-        ("instrText", 'TOC \\o "1-2" \\h \\z \\u', None),
-        ("separate", None, None),
-        ("plain", None, 'Right-click → Update Field to generate Table of Contents.'),
-        ("end", None, None),
-    ]:
-        if tag in ("begin", "separate", "end"):
-            el = OxmlElement("w:fldChar")
-            el.set(qn("w:fldCharType"), tag if tag != "plain" else "separate")
-            run._r.append(el)
-            if tag == "plain":
-                t = OxmlElement("w:t")
-                t.text = fld_text
-                run._r.append(t)
-        elif tag == "instrText":
-            el = OxmlElement("w:instrText")
-            el.set(qn("xml:space"), "preserve")
-            el.text = instr
-            run._r.append(el)
-        elif tag == "plain":
-            pass
+def add_doc_info_and_toc(doc):
+    """Page 2: professional document-info block + formatted table of contents."""
+
+    # ── Document Information block ─────────────────────────────────
+    info_heading = doc.add_paragraph()
+    r = info_heading.add_run("Document Information")
+    r.bold = True
+    r.font.size = Pt(13)
+    r.font.color.rgb = NAVY
+    add_hr(info_heading, "2F6EA5", 3)
+
+    fields = [
+        ("Project Title",    "Password Cracking & Credential Attack Suite"),
+        ("Author",           "Uddish Patel"),
+        ("Date",             date.today().strftime("%d %B %Y")),
+        ("Version",          "2.0  -  Final Submission"),
+        ("Classification",   "Educational / Ethical Use Only"),
+        ("Live Application", LIVE_URL),
+        ("Source Code",      REPO_URL),
+    ]
+    tbl = doc.add_table(rows=len(fields), cols=2)
+    tbl.style = "Table Grid"
+    tbl.alignment = WD_TABLE_ALIGNMENT.LEFT
+    for ri, (label, value) in enumerate(fields):
+        lc = tbl.rows[ri].cells[0]
+        vc = tbl.rows[ri].cells[1]
+        bg = ALT_BG if ri % 2 == 0 else "FFFFFF"
+        set_cell_bg(lc, "EEF4FA")
+        set_cell_bg(vc, bg)
+        lr = lc.paragraphs[0].add_run(label)
+        lr.bold = True
+        lr.font.size = Pt(10)
+        lr.font.color.rgb = NAVY
+        vr = vc.paragraphs[0].add_run(value)
+        vr.font.size = Pt(10)
+        if ri >= 5:
+            vr.font.color.rgb = STEEL
+    for row in tbl.rows:
+        row.cells[0].width = Inches(1.8)
+        row.cells[1].width = Inches(4.7)
+
+    doc.add_paragraph()
+
+    # ── Table of Contents ──────────────────────────────────────────
+    toc_heading = doc.add_paragraph()
+    r = toc_heading.add_run("Table of Contents")
+    r.bold = True
+    r.font.size = Pt(13)
+    r.font.color.rgb = NAVY
+    add_hr(toc_heading, "2F6EA5", 3)
+
+    sections = [
+        ("1",  "Abstract",                               None),
+        ("2",  "Introduction & Practical Motivation",    None),
+        ("3",  "Project Objectives",                     None),
+        ("4",  "Scope of the Project",                   None),
+        ("5",  "Tools & Technologies",                   None),
+        ("6",  "Key Differentiators",                    None),
+        ("7",  "System Architecture & Workflow",         None),
+        ("8",  "Live Dashboard - Module Screenshots",    [
+            ("8.1",  "Dashboard Home"),
+            ("8.2",  "Dictionary Generator"),
+            ("8.3",  "Hash Extractor - Linux Shadow"),
+            ("8.4",  "Hash Extractor - Windows SAM"),
+            ("8.5",  "Attack Simulator - Dictionary Attack"),
+            ("8.6",  "Attack Simulator - Real Crypt-Hash Attack"),
+            ("8.7",  "Attack Simulator - Brute-Force Estimate"),
+            ("8.8",  "Strength Analyzer - Data Table"),
+            ("8.9",  "Strength Analyzer - Visual Analytics"),
+            ("8.10", "NIST SP 800-63B Compliance"),
+            ("8.11", "Live Hardware Benchmark"),
+            ("8.12", "Consolidated Audit Report"),
+        ]),
+        ("9",  "Real Attack Demonstration Results",      None),
+        ("10", "NIST SP 800-63B Compliance Methodology", None),
+        ("11", "Security & Ethical Considerations",      None),
+        ("12", "Learning Outcomes",                      None),
+        ("13", "Conclusion & Future Scope",              None),
+        ("14", "References",                             None),
+    ]
+
+    def toc_line(num, title, indent=False):
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(2)
+        p.paragraph_format.space_after  = Pt(2)
+        if indent:
+            p.paragraph_format.left_indent = Inches(0.35)
+        run = p.add_run(num + ".  " + title if "." not in num else num + "  " + title)
+        run.font.size = Pt(10 if not indent else 9.5)
+        run.font.color.rgb = NAVY if not indent else STEEL
+        if not indent:
+            run.bold = True
+
+    for num, title, subs in sections:
+        toc_line(num, title, indent=False)
+        if subs:
+            for sub_num, sub_title in subs:
+                toc_line(sub_num, sub_title, indent=True)
 
 
 # ------------------------------------------------------------------
@@ -331,8 +404,7 @@ def build():
     cover_page(doc)
 
     # TOC
-    h1(doc, "Table of Contents")
-    add_toc(doc)
+    add_doc_info_and_toc(doc)
     doc.add_page_break()
 
     # ── 1. Abstract ──────────────────────────────────────────────
